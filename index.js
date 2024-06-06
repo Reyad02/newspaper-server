@@ -32,6 +32,7 @@ async function run() {
     await client.connect();
 
     const userCollection = client.db("newspaper").collection("users");
+    const articlesCollection = client.db("newspaper").collection("articles");
 
 
 
@@ -44,6 +45,27 @@ async function run() {
         return res.send({ message: 'user already exist' })
       }
       const result = await userCollection.insertOne(user);
+      res.send(result)
+    })
+
+
+    // articles related API
+    app.post("/articles", async (req, res) => {
+      const article = req.body;
+      const result = await articlesCollection.insertOne(article);
+      res.send(result)
+    })
+
+    app.get("/articles", async (req, res) => {
+      const query = { active: "yes" }
+      const result = await articlesCollection.find(query).toArray();
+      res.send(result)
+    })
+
+    app.get("/details/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await articlesCollection.findOne(query);
       res.send(result)
     })
 
