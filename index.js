@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser')
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 app.use(cors({
@@ -48,6 +49,39 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
+      res.send(result)
+    })
+
+    app.put("/update-payment", async (req, res) => {
+      const { email, time } = req.body;
+      const query = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          premiumTaken: time
+        },
+      };
+      const result = await userCollection.updateOne(query, updateDoc, options);
+      res.send(result)
+    })
+
+    app.put("/update-user-premium/:email", async (req, res) => {
+      const { email } = req.params;
+      const query = { email: email };
+      const updateDoc = {
+        $set: {
+          premiumTaken: null,
+        },
+      };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
+
+
 
     // articles related API
     app.post("/articles", async (req, res) => {
@@ -57,7 +91,7 @@ async function run() {
     })
 
     app.get("/articles", async (req, res) => {
-      const query = { active: "yes" }
+      const query = { isPremium: "yes" }
       const result = await articlesCollection.find(query).toArray();
       res.send(result)
     })
@@ -68,6 +102,54 @@ async function run() {
       const result = await articlesCollection.findOne(query);
       res.send(result)
     })
+
+    app.get("/my-articles/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { author: email }
+      const result = await articlesCollection.find(query).toArray();
+      res.send(result)
+    })
+
+    app.delete("/delete-article/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await articlesCollection.deleteOne(query);
+      res.send(result)
+    })
+
+    app.put("/update-article/:id", async (req, res) => {
+      const id = req.params.id;
+      const { title, publisher, tags, photo, description } = req.body;
+      const query = { _id: new ObjectId(id) }
+      console.log(req.body);
+      const updateDoc = {
+        $set: {
+          title: title,
+          publisher: publisher,
+          tags: tags.map(tag => tag),
+          photo: photo,
+          description: description
+        },
+      };
+      const result = await articlesCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
+
+
+    // payment related API
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount)
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
 
 
 
