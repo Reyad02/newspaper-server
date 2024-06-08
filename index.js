@@ -34,6 +34,7 @@ async function run() {
 
     const userCollection = client.db("newspaper").collection("users");
     const articlesCollection = client.db("newspaper").collection("articles");
+    const publisherCollection = client.db("newspaper").collection("publishers");
 
 
 
@@ -156,10 +157,12 @@ async function run() {
       });
     });
 
+
+
     // admin related api
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
-      const query = { role: "admin", email: email}
+      const query = { role: "admin", email: email }
       const result = await userCollection.find(query).toArray();
       res.send(result)
     })
@@ -176,7 +179,74 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/all-articles", async (req, res) => {
+      // const query = { role: "user" }
+      const result = await articlesCollection.find().toArray();
+      res.send(result)
+    })
 
+    app.put("/update-article-premium/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: {
+          isPremium: "yes",
+        },
+      };
+      const result = await articlesCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
+
+    app.put("/approve-article/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: {
+          status: "approved",
+        },
+      };
+      const result = await articlesCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
+
+    app.delete("/delete-article/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await articlesCollection.deleteOne(query);
+      res.send(result)
+    })
+
+    app.put("/reason-decline/:id", async (req, res) => {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          declineReason: reason,
+          status: "declined"
+        },
+      };
+      const result = await articlesCollection.updateOne(query, updateDoc, options);
+      res.send(result)
+    })
+
+
+
+
+
+
+    // publisher related API
+    app.post("/publishers", async (req, res) => {
+      const publisher = req.body;
+      const result = await publisherCollection.insertOne(publisher);
+      res.send(result)
+    })
+
+    app.get("/publishers", async (req, res) => {
+      const result = await publisherCollection.find().toArray();
+      res.send(result)
+    })
 
 
 
