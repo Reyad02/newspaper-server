@@ -151,7 +151,13 @@ async function run() {
       });
     });
 
-
+    // admin related api
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { role: "admin", email: email}
+      const result = await userCollection.find(query).toArray();
+      res.send(result)
+    })
 
 
 
