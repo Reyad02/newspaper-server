@@ -81,6 +81,11 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/users", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result)
+    })
+
 
 
     // articles related API
@@ -156,6 +161,18 @@ async function run() {
       const email = req.params.email;
       const query = { role: "admin", email: email}
       const result = await userCollection.find(query).toArray();
+      res.send(result)
+    })
+
+    app.put("/update-user-role/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await userCollection.updateOne(query, updateDoc);
       res.send(result)
     })
 
