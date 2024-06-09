@@ -97,6 +97,20 @@ async function run() {
       }
     });
 
+    app.put("/update-user/:email", async (req, res) => {
+      const { email } = req.params;
+      const { name, photo } = req.body;
+      const query = { email: email };
+      const updateDoc = {
+        $set: {
+          name: name,
+          photo: photo
+        },
+      };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
+
 
     // articles related API
     app.post("/articles", async (req, res) => {
@@ -111,6 +125,12 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/premiumArticles", async (req, res) => {
+      const query = { isPremium: "yes" }
+      const result = await articlesCollection.find(query).toArray();
+      res.send(result)
+    })
+
     app.get("/top-articles", async (req, res) => {
       try {
         const query = { status: "approved" };
@@ -121,6 +141,65 @@ async function run() {
       }
     });
 
+
+    app.get('/getRecentQueries', async (req, res) => {
+      const productName = req.query.getRecentQueries;
+      const publisherName = req.query.getPublishQuery;
+      const tagName = req.query.getTagQueries;
+      // console.log(productName);
+      let cursor;
+      if (productName && productName.trim() !== "") {
+        const query = { title: { $regex: productName, $options: 'i' }, status: "approved" };
+        cursor = articlesCollection.find(query);
+      }
+      else if (publisherName && publisherName.trim() !== "") {
+        if (publisherName === "all") {
+          cursor = articlesCollection.find({ status: "approved" });
+        } else {
+          const query = { publisher: { $regex: publisherName, $options: 'i' }, status: "approved" };
+          cursor = articlesCollection.find(query);
+        }
+      }
+      else if (tagName && tagName.trim() !== "") {
+        if (tagName === "all") {
+          cursor = articlesCollection.find({ status: "approved" });
+        } else {
+          const query = { tags: { $in: [tagName] }, status: "approved" };
+          cursor = articlesCollection.find(query);
+        }
+      }
+      else {
+        cursor = articlesCollection.find({ status: "approved" });
+      }
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+
+    app.get("/getAuthorQueries", async (req, res) => {
+      const authorName = req.query.getAuthor;
+      let cursor;
+      if (authorName && authorName.trim() !== "") {
+        if (authorName === "all") {
+          cursor = articlesCollection.find({ status: "approved", isPremium: "yes" });
+        } else {
+          const query = { author: { $regex: authorName, $options: 'i' }, status: "approved", isPremium: "yes" };
+          cursor = articlesCollection.find(query);
+        }
+      }
+      else {
+        cursor = articlesCollection.find({ status: "approved", isPremium: "yes" });
+      }
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    app.get("/allAuthors", async (req, res) => {
+      const query = { status: "approved", isPremium: "yes" };
+      const result = await articlesCollection.find(query).toArray();
+      const authors = result.map(article => article.author); // Assuming each article object has an 'author' field
+      res.send(authors);
+    });
 
     app.get("/details/:id", async (req, res) => {
       const id = req.params.id;
@@ -202,6 +281,9 @@ async function run() {
         res.status(500).send('Internal Server Error');
       }
     });
+
+
+
 
 
     // payment related API
