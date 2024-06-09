@@ -97,7 +97,7 @@ async function run() {
     })
 
     app.get("/articles", async (req, res) => {
-      const query = { isPremium: "yes" }
+      const query = { status: "approved" }
       const result = await articlesCollection.find(query).toArray();
       res.send(result)
     })
@@ -140,6 +140,48 @@ async function run() {
       const result = await articlesCollection.updateOne(query, updateDoc);
       res.send(result)
     })
+
+    // app.put('/news/:id', async (req, res) => {
+    //   const articleId = req.params.id;
+
+    //   // try {
+    //     const result = await articlesCollection.findOneAndUpdate(
+    //       { _id: ObjectId(articleId) },
+    //       { $inc: { count: 1 } },
+    //       // { returnDocument: 'after' }
+    //     );
+
+    //     if (!result.value) {
+    //       return res.status(404).send('Article not found');
+    //     }
+
+    //     res.send(result.value);
+    // //   } catch (error) {
+    // //     res.status(500).send('Server error');
+    // //   }
+    // });
+
+    // API endpoint to increment view count
+    app.put('/news/:id', async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $inc: {
+          count: 1
+        }
+      };
+
+      try {
+        const result = await articlesCollection.updateOne(query, updateDoc);
+        if (result.matchedCount === 0) {
+          return res.status(404).send('Article not found');
+        }
+        res.status(200).send(result);
+      } catch (error) {
+        console.error('Error updating view count:', error);
+        res.status(500).send('Internal Server Error');
+      }
+    });
 
 
     // payment related API
