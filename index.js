@@ -87,6 +87,15 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/usersCount", async (req, res) => {
+      try {
+        const totalUsers = await userCollection.estimatedDocumentCount();
+        const premiumUserCount = await userCollection.countDocuments({ premiumTaken: { $ne: null } });
+        res.send({ totalUsers, premiumUserCount });
+      } catch (error) {
+        res.status(500).send({ error: "An error occurred while fetching the total number of users." });
+      }
+    });
 
 
     // articles related API
@@ -101,6 +110,17 @@ async function run() {
       const result = await articlesCollection.find(query).toArray();
       res.send(result)
     })
+
+    app.get("/top-articles", async (req, res) => {
+      try {
+        const query = { status: "approved" };
+        const result = await articlesCollection.find(query).sort({ count: -1 }).limit(6).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "An error occurred while fetching the top articles." });
+      }
+    });
+
 
     app.get("/details/:id", async (req, res) => {
       const id = req.params.id;
