@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser')
+// const cookieParser = require('cookie-parser')
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
@@ -13,7 +13,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-app.use(cookieParser());
+// app.use(cookieParser());
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_SECRET_KEY}@cluster0.dr6rgwa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -35,6 +35,32 @@ async function run() {
     const userCollection = client.db("newspaper").collection("users");
     const articlesCollection = client.db("newspaper").collection("articles");
     const publisherCollection = client.db("newspaper").collection("publishers");
+
+
+    const verifyToken = (req, res, next) => {
+      console.log(req.headers);
+      // next();
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: 'unauthorized access' });
+      }
+      const token = req.headers.authorization.split(' ')[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: 'unauthorized access' });
+        }
+        req.decoded = decoded;
+        next();
+      })
+    }
+
+    // JWT related API
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+      res.send({ token });
+    })
+
 
 
 
@@ -208,8 +234,13 @@ async function run() {
       res.send(result)
     })
 
-    app.get("/my-articles/:email", async (req, res) => {
+    app.get("/my-articles/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
+      console.log("req decoded email",req.decoded.email);
+      console.log("req params email",email);
+      if (req.decoded.email !== email) {
+        return res.status(401).send({ message: 'unauthorized access' });
+      }
       const query = { author: email }
       const result = await articlesCollection.find(query).toArray();
       res.send(result)
