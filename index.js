@@ -240,26 +240,6 @@ async function run() {
       res.send(result)
     })
 
-    // app.put('/news/:id', async (req, res) => {
-    //   const articleId = req.params.id;
-
-    //   // try {
-    //     const result = await articlesCollection.findOneAndUpdate(
-    //       { _id: ObjectId(articleId) },
-    //       { $inc: { count: 1 } },
-    //       // { returnDocument: 'after' }
-    //     );
-
-    //     if (!result.value) {
-    //       return res.status(404).send('Article not found');
-    //     }
-
-    //     res.send(result.value);
-    // //   } catch (error) {
-    // //     res.status(500).send('Server error');
-    // //   }
-    // });
-
     // API endpoint to increment view count
     app.put('/news/:id', async (req, res) => {
       const { id } = req.params;
@@ -281,6 +261,47 @@ async function run() {
         res.status(500).send('Internal Server Error');
       }
     });
+
+    app.get("/articles-publisher", async (req, res) => {
+      try {
+        const query = { status: "approved" };
+        const pipeline = [
+          { $match: query },
+          {
+            $group: {
+              _id: "$publisher",
+              count: { $sum: 1 }
+            }
+          },
+          { $sort: { count: -1 } }  // Optional: Sort by count in descending order
+        ];
+        const result = await articlesCollection.aggregate(pipeline).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching articles:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
+    app.get("/articles-status-count", async (req, res) => {
+      try {
+        const pipeline = [
+          {
+            $group: {
+              _id: "$status",
+              count: { $sum: 1 }
+            }
+          }
+        ];
+        const result = await articlesCollection.aggregate(pipeline).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching articles:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
+
 
 
 
