@@ -39,7 +39,6 @@ async function run() {
 
     const verifyToken = (req, res, next) => {
       console.log(req.headers);
-      // next();
       if (!req.headers.authorization) {
         return res.status(401).send({ message: 'unauthorized access' });
       }
@@ -112,6 +111,19 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result)
     })
+
+    app.get("/admin-users", async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+  
+      const totalUsers = await userCollection.countDocuments();
+      const totalPages = Math.ceil(totalUsers / limit);
+      
+      const users = await userCollection.find().skip(skip).limit(limit).toArray();
+  
+      res.send({ users, totalPages });
+  });
 
     app.get("/usersCount", async (req, res) => {
       try {
@@ -332,6 +344,13 @@ async function run() {
       }
     });
 
+    app.get("/article-writing/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { author: email }
+      const result = await articlesCollection.find(query).toArray();
+      res.send(result)
+    })
+
 
 
 
@@ -375,11 +394,29 @@ async function run() {
       res.send(result)
     })
 
-    app.get("/all-articles", async (req, res) => {
-      // const query = { role: "user" }
-      const result = await articlesCollection.find().toArray();
-      res.send(result)
-    })
+    // app.get("/all-articles", async (req, res) => {
+    //   // const query = { role: "user" }
+    //   const result = await articlesCollection.find().toArray();
+    //   res.send(result)
+    // })
+
+    app.get("/admin-all-articles", async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 6;
+    
+      const skip = (page - 1) * limit;
+    
+      const articles = await articlesCollection.find().skip(skip).limit(limit).toArray();
+      const total = await articlesCollection.countDocuments();
+    
+      res.send({
+        articles,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      });
+    });
+    
 
     app.put("/update-article-premium/:id", async (req, res) => {
       const { id } = req.params;
